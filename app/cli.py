@@ -145,6 +145,7 @@ def analyze_url_with_advanced_ai(url):
         response_time, status_code = test_url_response(url)
         features['response_time'] = response_time
     
+    features.setdefault('ssl_valid', None)
     # Advanced AI-based scoring algorithm (more sensitive)
     score = 0.0
     reasons = []

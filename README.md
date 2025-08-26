@@ -1,12 +1,12 @@
 # 🔍 Advanced URL Phishing Detector - AI-Powered Security Tool
 
-An advanced, feature-rich AI-powered tool for detecting phishing URLs with real-time analysis, threat intelligence, and comprehensive security features.
+An advanced, feature-rich tool for detecting phishing URLs with real-time analysis, threat intelligence, and comprehensive security features.
 
 ## 🚀 Quick Setup (5 minutes)
 
 ```bash
 # 1. Clone and setup
-git clone <repository-url>
+git clone https://github.com/omar-hady/LinkGuardian
 cd url-phishing-detector
 
 # 2. Create virtual environment
@@ -27,7 +27,6 @@ python run.py predict "https://example.com"  # CLI analysis
 
 ## ✨ Advanced Features
 
-- **🤖 Advanced AI Analysis**: Sophisticated machine learning algorithms for accurate detection
 - **🔒 SSL Certificate Validation**: Real-time SSL certificate verification
 - **📅 Domain Age Analysis**: WHOIS lookup for domain registration age
 - **⚡ Response Time Analysis**: Performance and connectivity testing
@@ -52,7 +51,6 @@ Then open your browser and go to: `http://127.0.0.1:8000`
 - Real-time analysis with progress indicators
 - Detailed security reports
 - Interactive threat visualization
-- API documentation at `/docs`
 
 ### Command Line Interface
 
@@ -86,8 +84,8 @@ python app/cli.py --batch urls.txt
 - **Redirect Analysis**: Detects suspicious redirect chains
 - **URL Shortener Detection**: Identifies potentially dangerous shortened URLs
 
-### AI Scoring Algorithm:
-The advanced AI uses multiple weighted factors:
+### Scoring Algorithm:
+Uses multiple weighted factors:
 
 **Critical Risk Factors (High Weight):**
 - IP addresses instead of domains (0.4 points)
@@ -132,34 +130,6 @@ url-phishing-detector/
 └── README.md              # This file
 ```
 
-## 🛠️ API Endpoints
-
-### Web Interface
-- `GET /` - Enhanced web interface
-- `POST /predict` - Advanced form-based URL analysis
-- `POST /api/predict` - JSON API endpoint
-- `POST /api/batch` - Batch analysis endpoint
-- `GET /api/cache` - Cache information
-- `DELETE /api/cache` - Clear analysis cache
-- `GET /api/stats` - Analysis statistics
-- `GET /health` - Enhanced health check
-
-### Example API Usage
-```bash
-# Single URL analysis
-curl -X POST "http://localhost:8000/api/predict" \
-     -H "Content-Type: application/x-www-form-urlencoded" \
-     -d "url=https://example.com"
-
-# Batch analysis
-curl -X POST "http://localhost:8000/api/batch" \
-     -H "Content-Type: application/json" \
-     -d '["https://example.com", "https://suspicious-site.com"]'
-
-# Get statistics
-curl "http://localhost:8000/api/stats"
-```
-
 ## 📊 Enhanced Output Example
 
 ```
@@ -178,24 +148,6 @@ Response Time: 0.15s
   1. Contains hyphens in domain
 ======================================================================
 ```
-
-## 🔒 Security Features
-
-- **Multi-layered Analysis**: Combines multiple detection methods
-- **Real-time Validation**: Live SSL and domain checks
-- **Threat Intelligence**: Integration with security databases
-- **Intelligent Caching**: Prevents redundant analysis
-- **Comprehensive Logging**: Detailed analysis trails
-- **Rate Limiting**: Prevents abuse and ensures performance
-
-## 🚀 Performance Features
-
-- **Async Processing**: Non-blocking concurrent analysis
-- **Smart Caching**: Instant results for previously analyzed URLs
-- **Batch Optimization**: Efficient processing of multiple URLs
-- **Memory Management**: Optimized resource usage
-- **Error Handling**: Graceful failure recovery
-
 ## 🤝 Contributing
 
 1. Fork the repository
@@ -221,11 +173,6 @@ If you encounter any issues or have questions:
 3. Ensure all dependencies are installed
 4. Verify URL format is correct
 5. Check the logs for error messages
-
-## 🔄 Version History
-
-- **v2.0.0**: Advanced features, SSL validation, threat intelligence
-- **v1.0.0**: Basic AI-powered detection
 
 ---
 

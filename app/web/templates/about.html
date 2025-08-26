@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>About - LinkGuardian</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}" />
+  <link rel="icon" href="{{ url_for('static', path='favicon.svg') }}" type="image/svg+xml" />
+  <meta name="description" content="About LinkGuardian and our privacy approach." />
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a class="brand" href="/" aria-label="LinkGuardian home">
+        <img src="{{ url_for('static', path='logo.svg') }}" alt="LinkGuardian" style="height:20px;vertical-align:middle;"/>
+      </a>
+      <div class="links">
+        <a href="/">Home</a>
+        <a href="/how-it-works">How it works</a>
+        <a href="/cli">CLI</a>
+        <a href="/stats">Stats</a>
+        <a href="/about" class="active">About</a>
+        <a href="https://github.com/your-org/your-repo" target="_blank" rel="noopener">GitHub</a>
+      </div>
+      <div class="actions"><a class="dash-btn" href="/stats">Dashboard</a></div>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="panel" style="margin-top:24px; padding:20px;">
+      <h2>About</h2>
+      <p>LinkGuardian helps you assess the phishing risk of URLs using a transparent set of heuristics. We analyze only the URL string and public metadata; we do not execute scripts or run third-party trackers.</p>
+      <h3>Privacy</h3>
+      <p>Submitted URLs are processed in-memory and a summary of each analysis (URL, decision, score, timestamp) is stored locally to power the Stats page. Clear the cache or data anytime from <a href="/stats">Stats</a>.</p>
+      <h3>Limits</h3>
+      <p>To keep the service responsive, we apply a small per-IP rate limit. Heavy users should prefer the CLI for batch runs.</p>
+    </div>
+
+    <div class="site-footer">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <h4>LinkGuardian</h4>
+          <p class="tagline">Check if a URL looks suspicious using AI-powered analysis.</p>
+        </div>
+        <div class="footer-col">
+          <h4>Services</h4>
+          <ul>
+            <li><a href="/how-it-works">How it works</a></li>
+            <li><a href="/cli">CLI</a></li>
+            <li><a href="/stats">Stats</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Information</h4>
+          <ul>
+            <li><a href="/about">Privacy</a></li>
+            <li><a href="#">Terms</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Connect</h4>
+          <ul>
+            <li><a href="https://github.com/your-org/your-repo" target="_blank" rel="noopener">GitHub</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">© 2025 LinkGuardian. All rights reserved.</div>
+    </div>
+  </div>
+</body>
+</html>
+

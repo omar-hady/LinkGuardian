@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>CLI - LinkGuardian</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}" />
+  <link rel="icon" href="{{ url_for('static', path='favicon.svg') }}" type="image/svg+xml" />
+  <meta name="description" content="Use LinkGuardian from the terminal to analyze URLs." />
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a class="brand" href="/" aria-label="LinkGuardian home">
+        <img src="{{ url_for('static', path='logo.svg') }}" alt="LinkGuardian" style="height:20px;vertical-align:middle;"/>
+      </a>
+      <div class="links">
+        <a href="/">Home</a>
+        <a href="/how-it-works">How it works</a>
+        <a href="/cli" class="active">CLI</a>
+        <a href="/stats">Stats</a>
+        <a href="/about">About</a>
+        <a href="https://github.com/your-org/your-repo" target="_blank" rel="noopener">GitHub</a>
+      </div>
+      <div class="actions"><a class="dash-btn" href="/stats">Dashboard</a></div>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="panel" style="margin-top:24px; padding:20px;">
+      <h2>Command Line Interface</h2>
+      <p>Use the CLI to analyze URLs from your terminal. The CLI mirrors the web heuristics and thresholds.</p>
+      <pre><code># Single URL
+python app/cli.py https://example.com
+
+# Batch (one URL per line)
+python app/cli.py --batch test_urls.txt
+</code></pre>
+      <p>From the project root you can also use the runner:</p>
+      <pre><code>python run.py predict https://example.com
+python run.py batch test_urls.txt
+</code></pre>
+
+      <div class="section">
+        <h2>Gallery</h2>
+        <p>Screenshots of the CLI in action.</p>
+        <div class="gallery">
+          <img src="{{ url_for('static', path='cli_1.png') }}" alt="CLI screenshot 1"/>
+          <img src="{{ url_for('static', path='cli_2.png') }}" alt="CLI screenshot 2"/>
+          <img src="{{ url_for('static', path='cli_3.png') }}" alt="CLI screenshot 3"/>
+        </div>
+      </div>
+    </div>
+
+    <div class="site-footer">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <h4>LinkGuardian</h4>
+          <p class="tagline">Check if a URL looks suspicious using AI-powered analysis.</p>
+        </div>
+        <div class="footer-col">
+          <h4>Services</h4>
+          <ul>
+            <li><a href="/how-it-works">How it works</a></li>
+            <li><a href="/cli">CLI</a></li>
+            <li><a href="/stats">Stats</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Information</h4>
+          <ul>
+            <li><a href="/about">Privacy</a></li>
+            <li><a href="#">Terms</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Connect</h4>
+          <ul>
+            <li><a href="https://github.com/your-org/your-repo" target="_blank" rel="noopener">GitHub</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">© 2025 LinkGuardian. All rights reserved.</div>
+    </div>
+  </div>
+</body>
+</html>
+

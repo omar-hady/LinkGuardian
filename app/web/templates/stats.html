@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Stats - LinkGuardian</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}" />
+  <link rel="icon" href="{{ url_for('static', path='favicon.svg') }}" type="image/svg+xml" />
+  <meta name="description" content="Statistics for recent LinkGuardian analyses." />
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a class="brand" href="/" aria-label="LinkGuardian home">
+        <img src="{{ url_for('static', path='logo.svg') }}" alt="LinkGuardian" style="height:20px;vertical-align:middle;"/>
+      </a>
+      <div class="links">
+        <a href="/">Home</a>
+        <a href="/how-it-works">How it works</a>
+        <a href="/cli">CLI</a>
+        <a href="/stats" class="active">Stats</a>
+        <a href="/about">About</a>
+        <a href="https://github.com/your-org/your-repo" target="_blank" rel="noopener">GitHub</a>
+      </div>
+      <div class="actions"><a class="dash-btn" href="/stats">Dashboard</a></div>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="panel" style="margin-top:24px; padding:20px;">
+      <h2>Stats</h2>
+      <div class="stats" style="margin-top:10px;">
+        <div class="stat">
+          <div class="num">{{ stats.total_analyses }}</div>
+          <div class="label">total analyses</div>
+        </div>
+        <div class="stat">
+          <div class="num">{{ stats.phishing_count }}</div>
+          <div class="label">phishing</div>
+        </div>
+        <div class="stat">
+          <div class="num">{{ stats.suspicious_count }}</div>
+          <div class="label">suspicious</div>
+        </div>
+        <div class="stat">
+          <div class="num">{{ stats.legit_count }}</div>
+          <div class="label">legit</div>
+        </div>
+        <div class="stat">
+          <div class="num">{{ '%.3f'|format(stats.average_score) }}</div>
+          <div class="label">avg score</div>
+        </div>
+      </div>
+      <div style="margin-top:18px; display:flex; gap:12px; align-items:center;">
+        <form method="post" action="/api/cache">
+          <input type="hidden" name="_method" value="delete" />
+          <button class="btn" type="submit">Clear Cache</button>
+        </form>
+        <button class="btn" id="exportCsv">Export CSV</button>
+      </div>
+      <div style="margin-top:18px;">
+        <h3>Recent</h3>
+        <ul class="reasons recent-list">
+        {% for r in stats.recent %}
+          <li>{{ r.emoji }} {{ r.decision }} — <a href="{{ r.url }}" target="_blank" rel="noopener" class="url-clip">{{ r.url }}</a> — score {{ '%.3f'|format(r.score) }}</li>
+        {% endfor %}
+        </ul>
+      </div>
+      <div style="margin-top:18px;">
+        <h3>Decisions</h3>
+        <canvas id="chart" width="600" height="120" style="max-width:100%"></canvas>
+      </div>
+    </div>
+
+    <div class="site-footer">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <h4>LinkGuardian</h4>
+          <p class="tagline">Check if a URL looks suspicious using AI-powered analysis.</p>
+        </div>
+        <div class="footer-col">
+          <h4>Services</h4>
+          <ul>
+            <li><a href="/how-it-works">How it works</a></li>
+            <li><a href="/cli">CLI</a></li>
+            <li><a href="/stats">Stats</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Information</h4>
+          <ul>
+            <li><a href="/about">Privacy</a></li>
+            <li><a href="#">Terms</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Connect</h4>
+          <ul>
+            <li><a href="https://github.com/your-org/your-repo" target="_blank" rel="noopener">GitHub</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">© 2025 LinkGuardian. All rights reserved.</div>
+    </div>
+  </div>
+
+  <script>
+    // Support DELETE via simple form (since we keep things basic)
+    const clearForm = document.querySelector('form[action="/api/cache"]');
+    if (clearForm) {
+      clearForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        await fetch('/api/cache', { method: 'DELETE' });
+        location.reload();
+      });
+    }
+
+    // CSV export
+    const exportBtn = document.getElementById('exportCsv');
+    if (exportBtn) {
+      exportBtn.addEventListener('click', () => {
+        const rows = [
+          ['url','decision','score','confidence','timestamp']
+        ];
+        {% for r in stats.recent %}
+          rows.push(['{{ r.url }}','{{ r.decision }}','{{ '%.3f'|format(r.score) }}','{{ r.confidence }}','{{ r.analysis_timestamp if r.analysis_timestamp else '' }}']);
+        {% endfor %}
+        const csv = rows.map(r => r.map(x => '"' + String(x).replace(/"/g,'""') + '"').join(',')).join('\n');
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'linkguardian_recent.csv';
+        link.click();
+      });
+    }
+
+    // Mini bar chart (no libs)
+    const canvas = document.getElementById('chart');
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      const data = [
+        {label:'PHISHING', value: {{ stats.phishing_count }} , color:'#ff6b6b'},
+        {label:'SUSPICIOUS', value: {{ stats.suspicious_count }} , color:'#f6ad55'},
+        {label:'LEGIT', value: {{ stats.legit_count }} , color:'#4fd1c5'}
+      ];
+      const w = canvas.width, h = canvas.height, pad = 20, bw = (w - pad*2) / data.length * 0.6;
+      ctx.clearRect(0,0,w,h);
+      ctx.fillStyle = 'rgba(255,255,255,0.08)';
+      ctx.fillRect(0,0,w,h);
+      const max = Math.max(1, ...data.map(d => d.value));
+      data.forEach((d, i) => {
+        const x = pad + i * ((w - pad*2) / data.length) + ((w - pad*2) / data.length - bw)/2;
+        const bh = (h - pad*2) * (d.value / max);
+        const y = h - pad - bh;
+        ctx.fillStyle = d.color;
+        ctx.fillRect(x, y, bw, bh);
+        ctx.fillStyle = '#e6eefc';
+        ctx.font = '12px system-ui';
+        ctx.fillText(d.label, x, h - 6);
+      });
+    }
+  </script>
+</body>
+</html>
+

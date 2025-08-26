@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>URL Phishing Detector - Check a URL</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}" />
+  <link rel="icon" href="{{ url_for('static', path='favicon.svg') }}" type="image/svg+xml" />
+  <meta name="description" content="LinkGuardian helps you assess URL phishing risk using AI-powered heuristics." />
+  <meta property="og:title" content="LinkGuardian" />
+  <meta property="og:description" content="Check if a URL looks suspicious using AI-powered analysis." />
+  <meta property="og:type" content="website" />
+</head>
+<body>
+  <a href="#analyze" class="skip-link" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;">Skip to analyze</a>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a class="brand" href="/" aria-label="LinkGuardian home">
+        <img src="{{ url_for('static', path='logo.svg') }}" alt="LinkGuardian" style="height:20px;vertical-align:middle;"/>
+      </a>
+      <div class="links">
+        <a href="/" class="active">Home</a>
+        <a href="/how-it-works">How it works</a>
+        <a href="/cli">CLI</a>
+        <a href="/stats">Stats</a>
+        <a href="/about">About</a>
+        <a href="https://github.com/your-org/your-repo" target="_blank" rel="noopener">GitHub</a>
+      </div>
+      <div class="actions"><a class="dash-btn" href="/stats">Dashboard</a></div>
+      <button class="hamburger" id="navToggle" aria-label="Toggle menu"><span></span></button>
+    </div>
+  </nav>
+
+  <div class="header">
+    <div class="brand">LinkGuardian</div>
+    <div class="tagline">Check if a URL looks suspicious using AI-powered analysis</div>
+  </div>
+
+  <div class="container">
+    <div class="panel" id="analyze">
+      <form method="post" action="/predict" id="predictForm" class="hero">
+        <div class="input">
+          <input type="text" name="url" id="url" placeholder="https://example.com/login" 
+                 value="{{ result.url if result else '' }}" required>
+        </div>
+        <button type="submit" id="submitBtn" class="btn">Check</button>
+      </form>
+
+      <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <p>Analyzing URL...</p>
+      </div>
+
+      <div class="stats">
+        <div class="stat">
+          <div class="num">{{ stats.total_checks if stats else 0 }}</div>
+          <div class="label">total checks</div>
+        </div>
+        <div class="stat">
+          <div class="num">{{ stats.cache_size if stats else 0 }}</div>
+          <div class="label">cached results</div>
+        </div>
+      </div>
+
+      {% if error %}
+        <div class="result phishing">
+          <h3>⚠️ Error</h3>
+          <p>{{ error }}</p>
+        </div>
+      {% endif %}
+
+      {% if result %}
+        {% set cls = 'legit' %}
+        {% if result.decision == 'PHISHING' %}{% set cls = 'phishing' %}{% elif result.decision == 'SUSPICIOUS' %}{% set cls = 'suspicious' %}{% endif %}
+        <div class="result {{ cls }}">
+          <h3>{{ result.emoji }} {{ result.decision }}</h3>
+          <div>Score: {{ '%.3f'|format(result.score) }} | Confidence: {{ result.confidence }}</div>
+          <div class="reasons">
+            <h4>Reasons:</h4>
+            <ul>
+              {% for r in result.reasons %}
+                <li>{{ r }}</li>
+              {% endfor %}
+            </ul>
+            {% if result.deep and result.page %}
+            <div class="badge" style="margin-top:8px;">Deep analysis</div>
+            {% endif %}
+          </div>
+        </div>
+      {% endif %}
+    </div>
+
+    <div class="section">
+      <h2>Why LinkGuardian</h2>
+      <p>Real-world phishing detection combining URL heuristics, threat feeds, TLS checks, and optional page signals.</p>
+      <div class="card-grid">
+        <div class="card"><h3>Glassy UI</h3><p>Clean, modern interface focused on clarity and speed.</p></div>
+        <div class="card"><h3>Threat feeds</h3><p>OpenPhish and URLHaus consulted in background with caching.</p></div>
+        <div class="card"><h3>TLS & domain</h3><p>Certificate expiry/SAN matching, age and subdomain depth.</p></div>
+        <div class="card"><h3>Deep analysis</h3><p>Safe HTML fetch for forms, iframes, scripts (no JS execution).</p></div>
+        <div class="card"><h3>CLI</h3><p>Analyze from your terminal; batch mode and formatted output.</p></div>
+        <div class="card"><h3>Stats</h3><p>Dashboard with recent results, mini charts, and CSV export.</p></div>
+      </div>
+    </div>
+
+    <div class="site-footer">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <h4>LinkGuardian</h4>
+          <p class="tagline">Check if a URL looks suspicious using AI-powered analysis.</p>
+          <a class="btn" href="#analyze" style="display:inline-block;margin-top:10px;">Analyze a URL</a>
+        </div>
+        <div class="footer-col">
+          <h4>Services</h4>
+          <ul>
+            <li><a href="/how-it-works">How it works</a></li>
+            <li><a href="/cli">CLI</a></li>
+            <li><a href="/stats">Stats</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Information</h4>
+          <ul>
+            <li><a href="/about">Privacy</a></li>
+            <li><a href="#">Terms</a></li>
+            <li><a href="#">FAQ</a></li>
+            <li><a href="#">Suggest a Feature</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Connect</h4>
+          <ul>
+            <li><a href="https://github.com/your-org/your-repo" target="_blank" rel="noopener">GitHub</a></li>
+            <li><a href="#">Twitter/X</a></li>
+            <li><a href="#">LinkedIn</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">© 2025 LinkGuardian. All rights reserved.</div>
+    </div>
+  </div>
+
+  <script>
+    // Mobile hamburger toggle
+    const navToggle = document.getElementById('navToggle');
+    const navInner = document.querySelector('.nav-inner');
+    if (navToggle && navInner) {
+      navToggle.addEventListener('click', () => navInner.classList.toggle('nav-open'));
+    }
+
+    // Sort reasons by severity if result exists
+    (function(){
+      const list = document.querySelector('.reasons ul');
+      if (!list) return;
+      const items = Array.from(list.querySelectorAll('li'));
+      const rank = (t)=> t.includes('🚨') ? 0 : (t.includes('⚠️') ? 1 : 2);
+      items.sort((a,b)=> rank(a.textContent) - rank(b.textContent));
+      items.forEach(i=> list.appendChild(i));
+    })();
+
+    document.getElementById('predictForm').addEventListener('submit', function() {
+      document.getElementById('loading').style.display = 'block';
+      document.getElementById('submitBtn').disabled = true;
+    });
+  </script>
+  <a href="#analyze" class="sticky-analyze">Analyze URL</a>
+</body>
+</html>

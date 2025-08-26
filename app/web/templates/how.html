@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>How it works - LinkGuardian</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}" />
+  <link rel="icon" href="{{ url_for('static', path='favicon.svg') }}" type="image/svg+xml" />
+  <meta name="description" content="How LinkGuardian analyzes URLs for phishing risk." />
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a class="brand" href="/" aria-label="LinkGuardian home">
+        <img src="{{ url_for('static', path='logo.svg') }}" alt="LinkGuardian" style="height:20px;vertical-align:middle;"/>
+      </a>
+      <div class="links">
+        <a href="/">Home</a>
+        <a href="/how-it-works" class="active">How it works</a>
+        <a href="/cli">CLI</a>
+        <a href="/stats">Stats</a>
+        <a href="/about">About</a>
+        <a href="https://github.com/your-org/your-repo" target="_blank" rel="noopener">GitHub</a>
+      </div>
+      <div class="actions"><a class="dash-btn" href="/stats">Dashboard</a></div>
+    </div>
+  </nav>
+
+  <div class="container">
+    <div class="panel" style="margin-top:24px; padding:20px;">
+      <h2>How LinkGuardian Works</h2>
+      <p>LinkGuardian analyzes URLs with layered signals. We do not execute arbitrary scripts or crawl content beyond safe HTML parsing.</p>
+      <ul>
+        <li><b>Heuristics</b>: length, subdomains, path depth, query density, keywords, digits and hyphens.</li>
+        <li><b>Security</b>: HTTPS presence and TLS certificate checks (expiry and SAN match).</li>
+        <li><b>Domain context</b>: age estimation and suspicious TLDs, IDN/mixed scripts, brand similarity.</li>
+        <li><b>Threat intelligence</b>: background feeds (OpenPhish, URLHaus) influence scoring without exposing feed names.</li>
+        <li><b>Network</b>: response time and redirect hints.</li>
+        <li><b>Deep analysis</b>: optional safe fetch for forms, iframes, and external script counts.</li>
+      </ul>
+      <p>The score is normalized to 0–1 and mapped to: Legit, Suspicious, or Phishing, with the top reasons shown.</p>
+    </div>
+
+    <div class="site-footer">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <h4>LinkGuardian</h4>
+          <p class="tagline">Check if a URL looks suspicious using AI-powered analysis.</p>
+        </div>
+        <div class="footer-col">
+          <h4>Services</h4>
+          <ul>
+            <li><a href="/how-it-works">How it works</a></li>
+            <li><a href="/cli">CLI</a></li>
+            <li><a href="/stats">Stats</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Information</h4>
+          <ul>
+            <li><a href="/about">Privacy</a></li>
+            <li><a href="#">Terms</a></li>
+          </ul>
+        </div>
+        <div class="footer-col">
+          <h4>Connect</h4>
+          <ul>
+            <li><a href="https://github.com/your-org/your-repo" target="_blank" rel="noopener">GitHub</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="footer-bottom">© 2025 LinkGuardian. All rights reserved.</div>
+    </div>
+  </div>
+</body>
+</html>
+

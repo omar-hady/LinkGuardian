@@ -1,4 +1,4 @@
-# 🔍 Advanced URL Phishing Detector - AI-Powered Security Tool
+# 🔍 Advanced URL Phishing Detector
 
 An advanced, feature-rich tool for detecting phishing URLs with real-time analysis, threat intelligence, and comprehensive security features.
 

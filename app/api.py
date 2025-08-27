@@ -443,8 +443,9 @@ async def analyze_url_with_advanced_ai_async(url, deep: bool = False, sensitivit
         # Only check SSL for HTTPS and non-IP hostnames
         if features['has_https'] and hostname and not features['has_ip']:
             tasks.append(check_ssl_certificate_async(hostname))
+        # Use registered domain (domain + suffix) for WHOIS age lookup
         tasks.extend([
-            get_domain_age_async(extracted.domain),
+            get_domain_age_async((extracted.domain + "." + extracted.suffix) if extracted.suffix else extracted.domain),
             test_url_response_async(url),
             check_threat_intelligence(extracted.domain)
         ])
@@ -604,13 +605,14 @@ async def analyze_url_with_advanced_ai_async(url, deep: bool = False, sensitivit
         score += 0.05
         reasons.append("⚠️ High path randomness")
 
-    # Domain age analysis
-    if features['domain_age_days'] < 30:
-        score += 0.2
-        reasons.append("🚨 Very new domain (< 30 days)")
-    elif features['domain_age_days'] < 90:
-        score += 0.1
-        reasons.append("⚠️ New domain (< 90 days)")
+    # Domain age analysis (skip if unknown/WHOIS failed)
+    if isinstance(features['domain_age_days'], (int, float)) and features['domain_age_days'] > 0:
+        if features['domain_age_days'] < 30:
+            score += 0.2
+            reasons.append("🚨 Very new domain (< 30 days)")
+        elif features['domain_age_days'] < 90:
+            score += 0.1
+            reasons.append("⚠️ New domain (< 90 days)")
 
     # Response time analysis
     if features['response_time'] > 3:

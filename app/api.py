@@ -25,6 +25,7 @@ from collections import defaultdict
 from time import time as now
 import sqlite3
 from difflib import SequenceMatcher
+from app.analysis import validate_url as shared_validate_url, follow_redirects_async
 
 try:
     from bs4 import BeautifulSoup  # type: ignore
@@ -57,6 +58,12 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 app.add_middleware(SecurityHeadersMiddleware)
 
 templates = Jinja2Templates(directory="app/web/templates")
+# Ensure templates update immediately during development
+try:
+    templates.env.auto_reload = True  # type: ignore[attr-defined]
+    templates.env.cache = {}  # type: ignore[attr-defined]
+except Exception:
+    pass
 # Serve static assets (CSS, images)
 app.mount("/static", StaticFiles(directory="app/web/static"), name="static")
 
@@ -96,6 +103,16 @@ def init_db():
                 kind TEXT,
                 value TEXT UNIQUE,
                 source TEXT,
+                ts TEXT
+            )
+            """
+        )
+        c.execute(
+            """
+            CREATE TABLE IF NOT EXISTS whois_cache (
+                domain TEXT PRIMARY KEY,
+                creation_iso TEXT,
+                age_days INTEGER,
                 ts TEXT
             )
             """
@@ -153,6 +170,23 @@ async def fetch_threat_feeds():
             except Exception:
                 pass
         conn.commit()
+
+def load_threat_feeds_from_db(limit: int = 50000):
+    """Load cached threat feeds from SQLite into in-memory sets at startup."""
+    global threat_url_set, threat_domain_set
+    try:
+        with get_db_conn() as conn:
+            c = conn.cursor()
+            c.execute("SELECT value FROM threat_feed WHERE kind='url' ORDER BY id DESC LIMIT ?", (limit,))
+            urls = {row[0] for row in c.fetchall()}
+            c.execute("SELECT value FROM threat_feed WHERE kind='domain' ORDER BY id DESC LIMIT ?", (limit,))
+            domains = {row[0] for row in c.fetchall()}
+            if urls:
+                threat_url_set = urls
+            if domains:
+                threat_domain_set = domains
+    except Exception:
+        pass
 
 def extract_url_features(url):
     """Extract advanced features from URL for AI analysis"""
@@ -281,9 +315,45 @@ async def check_ssl_certificate_async(hostname: str, port: int = 443):
 async def get_domain_age_async(domain):
     """Get domain registration age in days asynchronously"""
     try:
-        # This would need an async WHOIS library, but for now we'll use a simple approach
-        return 365  # Default to 1 year for demo
-    except:
+        # Normalize domain
+        d = (domain or '').lower().strip()
+        if not d:
+            return 0
+        # Check cache (TTL ~ 7 days)
+        with get_db_conn() as conn:
+            c = conn.cursor()
+            c.execute("SELECT age_days, ts FROM whois_cache WHERE domain=?", (d,))
+            row = c.fetchone()
+            if row and row[0] is not None and row[1]:
+                try:
+                    ts = datetime.fromisoformat(row[1])
+                    if (datetime.now() - ts).days < 7:
+                        return int(row[0])
+                except Exception:
+                    return int(row[0])
+        # Resolve WHOIS in a thread to avoid blocking event loop
+        def _lookup():
+            try:
+                w = whois.whois(d)  # type: ignore
+                creation = w.creation_date if hasattr(w, 'creation_date') else None
+                if isinstance(creation, list):
+                    creation = creation[0] if creation else None
+                if creation:
+                    age_days = max(0, (datetime.now() - creation).days)
+                    with get_db_conn() as conn:
+                        c = conn.cursor()
+                        c.execute(
+                            "INSERT OR REPLACE INTO whois_cache(domain,creation_iso,age_days,ts) VALUES(?,?,?,?)",
+                            (d, creation.isoformat(), int(age_days), datetime.now().isoformat())
+                        )
+                        conn.commit()
+                    return int(age_days)
+            except Exception:
+                return 0
+            return 0
+        age = await asyncio.to_thread(_lookup)
+        return int(age) if age is not None else 0
+    except Exception:
         return 0
 
 async def test_url_response_async(url, timeout=5):
@@ -351,7 +421,7 @@ async def fetch_page_signals(url: str, timeout: int = 8):
         return signals
     return signals
 
-async def analyze_url_with_advanced_ai_async(url, deep: bool = False):
+async def analyze_url_with_advanced_ai_async(url, deep: bool = False, sensitivity: str = "balanced"):
     """Analyze URL using advanced AI-based heuristics asynchronously"""
     features, parsed, extracted = extract_url_features(url)
     if not features:
@@ -380,6 +450,8 @@ async def analyze_url_with_advanced_ai_async(url, deep: bool = False):
         ])
         if deep:
             tasks.append(fetch_page_signals(url))
+        # Follow redirects regardless of deep flag
+        tasks.append(follow_redirects_async(url))
 
     deep_signals = None
     if tasks:
@@ -401,6 +473,12 @@ async def analyze_url_with_advanced_ai_async(url, deep: bool = False):
         idx += 1
         if deep and idx < len(results):
             deep_signals = results[idx] if isinstance(results[idx], dict) else None
+            idx += 1
+        # Redirects result always last
+        if idx < len(results):
+            redir_res = results[idx] if not isinstance(results[idx], Exception) else (url, 0)
+            _, redirect_count = redir_res if isinstance(redir_res, tuple) else (url, 0)
+            features['redirect_count'] = redirect_count
 
     # Scoring
     score = 0.0
@@ -467,9 +545,9 @@ async def analyze_url_with_advanced_ai_async(url, deep: bool = False):
         score += 0.25
         reasons.append("⚠️ Does not use HTTPS")
 
-    if features['has_redirect']:
+    if features['has_redirect'] or features.get('redirect_count', 0) > 0:
         score += 0.2
-        reasons.append("⚠️ Contains redirect keywords")
+        reasons.append("⚠️ Contains redirects")
 
     if features['has_shortener']:
         score += 0.15
@@ -544,15 +622,23 @@ async def analyze_url_with_advanced_ai_async(url, deep: bool = False):
         score += 0.3
         reasons.append(f"🚨 {threat_info}")
 
-    # Normalize, thresholds and result
+    # Normalize and apply sensitivity thresholds
     score = min(score, 1.0)
-    if score > 0.6:
+    s = (sensitivity or "balanced").lower()
+    if s == 'strict':
+        th_high = 0.5; th_med = 0.2; th_low = 0.05
+    elif s == 'lenient':
+        th_high = 0.7; th_med = 0.35; th_low = 0.12
+    else:  # balanced
+        th_high = 0.6; th_med = 0.25; th_low = 0.08
+
+    if score > th_high:
         decision = "PHISHING"; confidence = "VERY HIGH"; emoji = "🚨"; color = "danger"
-    elif score > 0.45:
+    elif score > (th_high - 0.15):
         decision = "PHISHING"; confidence = "HIGH"; emoji = "🚨"; color = "danger"
-    elif score > 0.25:
+    elif score > th_med:
         decision = "SUSPICIOUS"; confidence = "MEDIUM"; emoji = "⚠️"; color = "warning"
-    elif score > 0.08:
+    elif score > th_low:
         decision = "SUSPICIOUS"; confidence = "LOW"; emoji = "⚠️"; color = "warning"
     else:
         decision = "LEGIT"; confidence = "HIGH"; emoji = "✅"; color = "success"
@@ -572,7 +658,8 @@ async def analyze_url_with_advanced_ai_async(url, deep: bool = False):
         'analysis_timestamp': datetime.now().isoformat(),
         'deep': bool(deep),
         'page': deep_signals or {},
-        'feed_matched': feed_matched
+        'feed_matched': feed_matched,
+        'sensitivity': s
     }
     try:
         with get_db_conn() as conn:
@@ -585,18 +672,8 @@ async def analyze_url_with_advanced_ai_async(url, deep: bool = False):
     return result
 
 def validate_url(url: str) -> bool:
-    """Validate URL format"""
-    if not url or len(url.strip()) == 0:
-        return False
-    
-    url_pattern = re.compile(
-        r'^https?://'
-        r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+[A-Z]{2,6}\.?|'
-        r'localhost|'
-        r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'
-        r'(?::\d+)?'
-        r'(?:/?|[/?]\S+)$', re.IGNORECASE)
-    return bool(url_pattern.match(url.strip()))
+    """Validate URL format using shared validator (supports IPv6)."""
+    return shared_validate_url(url)
 
 async def background_analysis(url: str):
     """Background task for detailed analysis"""
@@ -625,6 +702,7 @@ async def startup_event():
     print("🔧 Loading threat intelligence...")
     init_db()
     try:
+        load_threat_feeds_from_db()
         asyncio.create_task(refresh_threat_feeds_periodically())
     except Exception:
         pass
@@ -708,7 +786,7 @@ async def about_page(request: Request):
     return templates.TemplateResponse("about.html", {"request": request})
 
 @app.post("/predict", response_class=HTMLResponse)
-async def predict_form(request: Request, url: str = Form(...)):
+async def predict_form(request: Request, url: str = Form(...), sensitivity: str = Form("balanced")):
     try:
         client_ip = request.client.host if request.client else 'unknown'
         timestamps = rate_limit_state[client_ip]
@@ -722,8 +800,8 @@ async def predict_form(request: Request, url: str = Form(...)):
         rate_limit_state[client_ip].append(now())
         if not validate_url(url):
             return templates.TemplateResponse("index.html", {"request": request, "error": "Invalid URL format. Please enter a valid URL starting with http:// or https://"})
-        # Always deep analyze (no caching for content-sensitive results)
-        result = await analyze_url_with_advanced_ai_async(url, deep=True)
+        # Always deep analyze (no caching for content-sensitive results). Force best default.
+        result = await analyze_url_with_advanced_ai_async(url, deep=True, sensitivity="balanced")
         if not result:
             return templates.TemplateResponse("index.html", {"request": request, "error": "Failed to analyze URL. Please try again."})
         stats = get_db_summary()
@@ -732,7 +810,7 @@ async def predict_form(request: Request, url: str = Form(...)):
         return templates.TemplateResponse("index.html", {"request": request, "error": f"Error analyzing URL: {str(e)}"})
 
 @app.post("/api/predict")
-async def predict_api(url: str = Form(...)):
+async def predict_api(url: str = Form(...), sensitivity: str = Form("balanced")):
     try:
         client_ip = 'api-client'
         timestamps = rate_limit_state[client_ip]
@@ -743,8 +821,8 @@ async def predict_api(url: str = Form(...)):
         rate_limit_state[client_ip].append(now())
         if not validate_url(url):
             raise HTTPException(status_code=400, detail="Invalid URL format")
-        # Always deep analyze
-        result = await analyze_url_with_advanced_ai_async(url, deep=True)
+        # Always deep analyze. Force best default.
+        result = await analyze_url_with_advanced_ai_async(url, deep=True, sensitivity="balanced")
         if not result:
             raise HTTPException(status_code=500, detail="Failed to analyze URL")
         return JSONResponse(content=result)

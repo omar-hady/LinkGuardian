@@ -82,6 +82,7 @@ body {
 .dash-btn { color: #e6eefc; text-decoration: none; font-weight: 700; padding: 8px 14px; border-radius: 12px; background: rgba(63, 123, 191, 0.25); border: 1px solid rgba(161, 201, 255, 0.2); }
 .dash-btn:hover { background: rgba(63, 123, 191, 0.35); }
 
+
 /* Hamburger for small screens */
 .hamburger { display: none; margin-left: auto; width: 36px; height: 36px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.07); background: rgba(255,255,255,0.03); cursor: pointer; align-items: center; justify-content: center; }
 .hamburger span { width: 18px; height: 2px; background: #e6eefc; position: relative; display: block; }
@@ -136,6 +137,67 @@ body {
 }
 .btn:active { transform: translateY(1px); }
 
+/* Segmented control (sensitivity switch) */
+/* Glass radio group (sensitivity switch) */
+.glass-radio-group {
+  --bg: rgba(255, 255, 255, 0.06);
+  --text: #e5e5e5;
+  display: flex;
+  position: relative;
+  background: var(--bg);
+  border-radius: 1rem;
+  backdrop-filter: blur(12px);
+  box-shadow: inset 1px 1px 4px rgba(255, 255, 255, 0.2), inset -1px -1px 6px rgba(0, 0, 0, 0.3), 0 4px 12px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+  width: fit-content;
+}
+.glass-radio-group input { display: none; }
+.glass-radio-group label {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 80px;
+  font-size: 14px;
+  padding: 0.8rem 1.6rem;
+  cursor: pointer;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  color: var(--text);
+  position: relative;
+  z-index: 2;
+  transition: color 0.3s ease-in-out;
+}
+.glass-radio-group label:hover { color: #ffffff; }
+.glass-radio-group input:checked + label { color: #ffffff; }
+.glass-glider {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: calc(100% / 3);
+  border-radius: 1rem;
+  z-index: 1;
+  transition: transform 0.5s cubic-bezier(0.37, 1.95, 0.66, 0.56), background 0.4s ease-in-out, box-shadow 0.4s ease-in-out;
+}
+/* Silver */
+#glass-silver:checked ~ .glass-glider {
+  transform: translateX(0%);
+  background: linear-gradient(135deg, #c0c0c055, #e0e0e0);
+  box-shadow: 0 0 18px rgba(192, 192, 192, 0.5), 0 0 10px rgba(255, 255, 255, 0.4) inset;
+}
+/* Gold */
+#glass-gold:checked ~ .glass-glider {
+  transform: translateX(100%);
+  background: linear-gradient(135deg, #ffd70055, #ffcc00);
+  box-shadow: 0 0 18px rgba(255, 215, 0, 0.5), 0 0 10px rgba(255, 235, 150, 0.4) inset;
+}
+/* Platinum */
+#glass-platinum:checked ~ .glass-glider {
+  transform: translateX(200%);
+  background: linear-gradient(135deg, #d0e7ff55, #a0d8ff);
+  box-shadow: 0 0 18px rgba(160, 216, 255, 0.5), 0 0 10px rgba(200, 240, 255, 0.4) inset;
+}
+
 .stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 16px; }
 .stat { background: rgba(17, 24, 56, 0.6); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 14px 16px; text-align: center; }
 .stat .num { font-size: 28px; font-weight: 800; }
@@ -148,6 +210,11 @@ body {
 .result h3 { margin: 0 0 6px; }
 .reasons { color: var(--muted); margin-top: 8px; }
 .reasons ul { margin: 0; padding-left: 18px; }
+
+/* Score bar */
+.scorebar { margin-top: 8px; height: 10px; border-radius: 999px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.08); overflow: hidden; }
+.scorebar-fill { height: 100%; background: linear-gradient(90deg, var(--warning), var(--danger)); width: 0%; transition: width .3s ease; }
+.result.legit .scorebar-fill { background: linear-gradient(90deg, #22c55e, #4fd1c5); }
 
 .footer { text-align: center; color: var(--muted); padding: 32px 16px; font-size: 13px; }
 .footer a { color: var(--text); text-decoration: none; opacity: .9; }
@@ -220,16 +287,22 @@ body {
 }
 @media (max-width: 640px){ .footer-grid{grid-template-columns: 1fr;} .gallery{grid-template-columns: 1fr;} }
 
-/* Fix input overlapping the Check button (stronger rules) */
-.hero { display: flex; gap: 8px; align-items: stretch; }
+/* Arrange hero content in two rows: input, then controls+button */
+.hero { display: flex; flex-direction: column; gap: 12px; align-items: stretch; }
 .hero .input { flex: 1 1 auto; min-width: 0; }
-.hero .input input { display: block; width: 100%; border-radius: 12px 0 0 12px; border-right: 0; }
-.hero .btn { flex: 0 0 auto; position: relative; z-index: 2; border-radius: 0 12px 12px 0; padding-left: 18px; padding-right: 18px; white-space: nowrap; }
+.hero .input input { display: block; width: 100%; border-radius: 12px; }
+.hero .btn { border-radius: 12px; padding-left: 18px; padding-right: 18px; white-space: nowrap; }
+
+/* New controls row under input */
+.controls { display: flex; gap: 12px; align-items: center; justify-content: flex-start; margin-left: 0; }
+.controls .segmented { flex: 1 1 auto; }
+.controls .btn { flex: 0 0 auto; border-radius: 12px; }
 
 @media (max-width: 640px){
   .hero{ flex-direction: column; gap: 10px; }
   .hero .input input { border-radius: 12px; border-right: 1px solid rgba(255,255,255,0.08); }
-  .hero .btn { width: 100%; border-radius: 12px; }
+  .controls { flex-direction: column; align-items: stretch; }
+  .controls .btn { width: 100%; }
 }
 
 /* Recent list URL clipping */
@@ -237,3 +310,10 @@ body {
 .recent-list li { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .url-clip { color: var(--text); opacity: .9; text-decoration: none; }
 .url-clip:hover { text-decoration: underline; }
+
+/* Pill switch for sensitivity */
+.pill-switch { display: inline-flex; gap: 8px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); border-radius: 999px; padding: 6px; position: relative; }
+.pill-switch .pill { background: transparent; color: var(--muted); border: none; padding: 8px 14px; border-radius: 999px; font-weight: 800; cursor: pointer; position: relative; z-index: 2; }
+.pill-switch .pill.active { color: #051026; }
+.pill-switch::before { content: ""; position: absolute; top: 4px; bottom: 4px; left: var(--pill-left, 6px); width: var(--pill-width, 86px); border-radius: 999px; background: linear-gradient(135deg, var(--accent), var(--accent-2)); box-shadow: 0 8px 22px rgba(0,0,0,0.25); transition: transform .25s ease, width .2s ease; z-index: 1; }
+/* positions will be set via JS by translating the ::before */

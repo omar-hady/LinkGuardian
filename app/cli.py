@@ -8,6 +8,7 @@ import argparse
 import json
 import os
 import sys
+import asyncio
 import requests
 import tldextract
 from urllib.parse import urlparse
@@ -17,6 +18,11 @@ import ssl
 import whois
 from datetime import datetime
 import time
+
+try:
+    from app.analysis import analyze_url_with_advanced_ai_async
+except Exception:
+    analyze_url_with_advanced_ai_async = None  # type: ignore
 
 def extract_url_features(url):
     """Extract advanced features from URL for AI analysis"""
@@ -123,163 +129,11 @@ def test_url_response(url, timeout=5):
         return 0, 0
 
 def analyze_url_with_advanced_ai(url):
-    """Analyze URL using advanced AI-based heuristics"""
-    features, parsed, extracted = extract_url_features(url)
-    if not features:
+    """Analyze URL using shared async analyzer (deeper and more accurate)."""
+    if analyze_url_with_advanced_ai_async is None:
+        # Fallback to legacy in-file logic if import failed
         return None
-    
-    print("🔍 Analyzing URL features...")
-    
-    # Advanced checks
-    if extracted and extracted.domain:
-        hostname = parsed.hostname
-        # Only check SSL for HTTPS and non-IP hostnames
-        if features['has_https'] and hostname and not features['has_ip']:
-            print("  📋 Checking SSL certificate...")
-            features['ssl_valid'] = check_ssl_certificate(hostname)
-        
-        print("  📅 Checking domain age...")
-        features['domain_age_days'] = get_domain_age(extracted.domain)
-        
-        print("  ⚡ Testing response time...")
-        response_time, status_code = test_url_response(url)
-        features['response_time'] = response_time
-    
-    features.setdefault('ssl_valid', None)
-    # Advanced AI-based scoring algorithm (more sensitive)
-    score = 0.0
-    reasons = []
-    
-    # Critical risk factors (high weight)
-    if features['has_ip']:
-        score += 0.4
-        reasons.append("🚨 URL contains IP address instead of domain")
-    
-    if features['has_at_symbol']:
-        score += 0.35
-        reasons.append("🚨 Contains @ symbol (common in phishing)")
-    
-    # Penalize SSL only when explicitly invalid (not when unknown)
-    if features['has_https'] and features['ssl_valid'] == 0:
-        score += 0.3
-        reasons.append("🚨 Invalid SSL certificate")
-    
-    # High risk factors
-    if features.get('tld_suspicious'):
-        score += 0.25
-        reasons.append("⚠️ Suspicious top-level domain")
-    
-    if features['subdomain_count'] >= 4:
-        score += 0.25
-        reasons.append("⚠️ Excessive number of subdomains")
-    elif features['subdomain_count'] >= 3:
-        score += 0.15
-        reasons.append("⚠️ High number of subdomains")
-    
-    if features['url_length'] > 150:
-        score += 0.2
-        reasons.append("⚠️ Unusually long URL")
-    elif features['url_length'] > 100:
-        score += 0.1
-        reasons.append("⚠️ Long URL")
-    
-    if not features['has_https']:
-        score += 0.25
-        reasons.append("⚠️ Does not use HTTPS")
-    
-    if features['has_redirect']:
-        score += 0.2
-        reasons.append("⚠️ Contains redirect keywords")
-    
-    if features['has_shortener']:
-        score += 0.15
-        reasons.append("⚠️ Uses URL shortener")
-    
-    # Medium risk factors
-    if features['has_hyphen']:
-        score += 0.1
-        reasons.append("⚠️ Contains hyphens in domain")
-    
-    if features['has_underscore']:
-        score += 0.1
-        reasons.append("⚠️ Contains underscores in domain")
-    
-    if features['has_suspicious_keywords']:
-        score += 0.1
-        reasons.append("⚠️ Contains suspicious keywords")
-    
-    if features['domain_length'] > 25:
-        score += 0.05
-        reasons.append("⚠️ Very long domain name")
-    elif features['domain_length'] > 20:
-        score += 0.03
-        reasons.append("⚠️ Long domain name")
-    
-    if features['path_length'] > 80:
-        score += 0.08
-        reasons.append("⚠️ Very long URL path")
-    elif features['path_length'] > 50:
-        score += 0.05
-        reasons.append("⚠️ Long URL path")
-    
-    if features.get('entropy_domain', 0) > 3.5:
-        score += 0.08
-        reasons.append("⚠️ High domain randomness")
-    
-    if features.get('entropy_path', 0) > 4.0:
-        score += 0.05
-        reasons.append("⚠️ High path randomness")
-    
-    # Domain age analysis
-    if features['domain_age_days'] < 30:
-        score += 0.2
-        reasons.append("🚨 Very new domain (< 30 days)")
-    elif features['domain_age_days'] < 90:
-        score += 0.1
-        reasons.append("⚠️ New domain (< 90 days)")
-    
-    # Response time analysis
-    if features['response_time'] > 3:
-        score += 0.05
-        reasons.append("⚠️ Slow response time")
-    
-    # Normalize score to 0-1 range
-    score = min(score, 1.0)
-    
-    # Determine decision with confidence (lowered thresholds)
-    if score > 0.6:
-        decision = "PHISHING"
-        confidence = "VERY HIGH"
-        emoji = "🚨"
-    elif score > 0.45:
-        decision = "PHISHING"
-        confidence = "HIGH"
-        emoji = "🚨"
-    elif score > 0.25:
-        decision = "SUSPICIOUS"
-        confidence = "MEDIUM"
-        emoji = "⚠️"
-    elif score > 0.08:
-        decision = "SUSPICIOUS"
-        confidence = "LOW"
-        emoji = "⚠️"
-    else:
-        decision = "LEGIT"
-        confidence = "HIGH"
-        emoji = "✅"
-    
-    return {
-        'url': url,
-        'decision': decision,
-        'score': score,
-        'confidence': confidence,
-        'emoji': emoji,
-        'reasons': reasons[:8],
-        'features': features,
-        'domain_age_days': features['domain_age_days'],
-        'ssl_valid': features['ssl_valid'],
-        'response_time': features['response_time']
-    }
+    return asyncio.run(analyze_url_with_advanced_ai_async(url, deep=False))
 
 def print_result(result):
     """Print enhanced prediction result"""
@@ -305,6 +159,8 @@ def print_result(result):
     
     if result['response_time'] > 0:
         print(f"Response Time: {result['response_time']:.2f}s")
+    if result.get('features', {}).get('redirect_count', 0) > 0:
+        print(f"Redirects: {result['features']['redirect_count']}")
     
     if result['reasons']:
         print(f"\n🔍 Analysis Reasons:")

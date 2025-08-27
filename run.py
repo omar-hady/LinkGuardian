@@ -119,6 +119,16 @@ Examples:
     
     args = parser.parse_args()
     
+    # If a project venv exists and we are not using it, relaunch with venv's Python
+    project_root = Path(__file__).resolve().parent
+    venv_python = project_root / 'venv' / 'bin' / 'python'
+    if venv_python.exists() and Path(sys.executable) != venv_python:
+        try:
+            print(f"🔁 Switching to project venv interpreter: {venv_python}")
+            os.execv(str(venv_python), [str(venv_python), __file__] + sys.argv[1:])
+        except Exception as e:
+            print(f"⚠️  Could not switch to venv automatically: {e}")
+
     if args.command == 'check':
         print("🔍 Checking system status...")
         if check_dependencies():
